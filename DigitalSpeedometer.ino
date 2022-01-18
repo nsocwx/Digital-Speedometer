@@ -17,6 +17,7 @@
 #include <SwitecX25.h>
 #include <util/atomic.h>
 #include <EEPROM.h>
+#include <MultiMap.h>
 /*****************************/
 //definitions
 //A4 and A5 used for OLED screen
@@ -42,6 +43,8 @@ const unsigned int pulsesPerMile = 4000;//variable to store vss ppm
 const unsigned int convertMph = 36000/pulsesPerMile;
 unsigned long mileageWhole; //mileage output to screen before decimal
 unsigned int mileageTenth; //mileage output to screen after decimal
+int out[] = {0,75,155,245,325,408,486,568,658,740,810}; //stepper positions for each 10mph
+int in[] = {0,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000}; //each 10mph x 100
 /*****************************/
 void setup() {
   Serial.begin(115200);
@@ -61,12 +64,12 @@ void setup() {
 void loop() {
   cycles++;//increment cycle count
   //run this code every 500 cylces (half second)
-  if(cycles >= 500){
+  if(cycles >= 250){
     cycles = 0;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
       vss = readVss(); //read VSS inside atomic block for accuracy
     }
-    position = map(vss, 0, 10000, 0, STEPS-127); //map stepper position
+    position = multiMap<int>(vss, in, out, 11); //map stepper position
     speedo.setPosition(position); //set speedo to mapped position
     display.setCursor(17,0);//centers text
     //code to breakdown numbers for before and after decimal
@@ -100,7 +103,7 @@ void loop() {
    }
   //end of 500 cycle code statement
   speedo.update();//move stepper to target location
-  delay(1);
+  delay(2);
 }
 /*****************************/
 void VSSCount() //runs when VSSPin sees a rising signal

@@ -72,7 +72,7 @@ void loop() {
   {
     copy = delta; //read the delta in an atomic block to prevent changes mid read (4 cycles to read a long)
   }
-  if(copy > lowHz)//time long enough it must be less than ~1.8mph
+  if((micros() - timeOld) > lowHz)//time long enough it must be less than ~1.8mph
   {
     vss = 0; //round vss below lowHz to 0
   }

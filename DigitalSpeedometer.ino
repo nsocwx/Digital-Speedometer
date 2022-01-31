@@ -17,7 +17,6 @@
 #include <SwitecX25.h>
 #include <util/atomic.h>
 #include <EEPROM.h>
-#include <MultiMap.h>
 /*****************************/
 //definitions
 //A4 and A5 used for OLED screen
@@ -64,12 +63,13 @@ void setup() {
 void loop() {
   cycles++;//increment cycle count
   //run this code every 500 cylces (half second)
-  if(cycles >= 250){
+  if(cycles >= 100){
     cycles = 0;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
       vss = readVss(); //read VSS inside atomic block for accuracy
     }
-    position = multiMap<int>(vss, in, out, 11); //map stepper position
+    position = multiMap(vss, in, out, 11); //map stepper position
+
     speedo.setPosition(position); //set speedo to mapped position
     display.setCursor(17,0);//centers text
     //code to breakdown numbers for before and after decimal
@@ -103,7 +103,7 @@ void loop() {
    }
   //end of 500 cycle code statement
   speedo.update();//move stepper to target location
-  delay(2);
+  delay(5);
 }
 /*****************************/
 void VSSCount() //runs when VSSPin sees a rising signal
@@ -121,4 +121,21 @@ unsigned int readVss()//runs when called
   mileage = mileage + PULSE;
   PULSE = 0;
   return result;
+}
+unsigned int multiMap(int value, int* _in, int* _out, uint8_t size)
+{
+    // take care the value is within range
+    if (value <= _in[0]) return _out[0];
+    if (value >= _in[size-1]) return _out[size-1];
+
+    // search right interval
+    uint8_t pos = 1;  // _in[0] already tested
+    while(value > _in[pos]) pos++;
+
+    // this will handle all exact "points" in the _in array
+    if (value == _in[pos]) return _out[pos];
+
+    // interpolate in the right segment for the rest
+    uint16_t result = map(value,_in[pos-1],_in[pos],_out[pos-1],_out[pos]);
+    return result;
 }
